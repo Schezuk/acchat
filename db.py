@@ -9,7 +9,11 @@ This project is licensed under GPLv3, see LICENSE
 
 ---- DATABASE FUNCTIONS ----
 '''
-
+# Notes to DB Structure
+# 1. the database is too big(20 Million records), partition is used for concurrency consideration
+# 2. innodb is prefered, it consumes more memory but it worths
+# 3. I convert date and ip to integer to reduce the space and increase efficiency, but that is not a good design
+#
 # DB STRUCTURE
 # ============
 #+----------+------------------+------+-----+---------+-------+
@@ -35,6 +39,7 @@ This project is licensed under GPLv3, see LICENSE
 
 
 from twisted.enterprise import adbapi 
+import MySQLdb
 
 DBNAME = "acchat_demo"
 DBUSER = "acchat_demo"
@@ -66,3 +71,30 @@ def batchmsg(txn,bmsg):
 	txn.executemany('''insert into ac_subs_10p 
 						(partid,time,txt,date,mode,color,fontsize,uid,ipv4)
 						values (%s,%s,%s,%s,%s,%s,%s,%s,%s) ''', bmsg )
+
+def createdb():
+	db = MySQLdb.connect(db=DBNAME,user=DBUSER,passwd=DBPWD)
+	c = db.cursor()
+	c.execute('''
+	CREATE TABLE `ac_subs_10p` (
+	  `partid` double DEFAULT NULL,
+	  `time` float DEFAULT NULL,
+	  `txt` text,
+	  `date` int(11) DEFAULT NULL,
+	  `mode` smallint(6) DEFAULT NULL,
+	  `color` int(11) DEFAULT NULL,
+	  `fontsize` int(11) DEFAULT NULL,
+	  `uid` int(11) DEFAULT NULL,
+	  `ipv4` int(10) unsigned DEFAULT NULL,
+	  KEY `subidxp1` (`partid`),
+	  KEY `subidxp2` (`date`),
+	  KEY `subidxp3` (`uid`),
+	  KEY `subidxp4` (`ipv4`)
+	) ENGINE=MyISAM DEFAULT CHARSET=latin1 
+	PARTITION BY KEY (partid) PARTITIONS 10;
+	''')
+
+if __name__ == '__main__':
+	import os,sys
+	if len(sys.argv) == 2 and sys.argv[1] == 'createdb':
+		createdb()
