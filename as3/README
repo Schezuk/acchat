@@ -1,0 +1,5 @@
+ActionScript Classes needed to communicate with AcChat Server
+=============================================================
+MySocket:     This is a very simple socket sender/receiver class
+AcChat:       sent/receive real messages from/to server, and dispatch events accordingly
+modify.mxml:  methods need to be add/modified

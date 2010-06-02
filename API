@@ -1,0 +1,107 @@
+'''
+This is a twisted powered chat server 
+    developed by observer(jingchaohu@gmail.com)
+	using a self-designed json-based protocol
+	aimed to serve a PAD like Flex/Flash player with flying comments effect
+This project is licensed under GPLv3, see LICENSE
+
+---- API DOCUMENT ---
+'''
+
+
+INTRODUCTION
+============
+	The AcChat Server's protocol is base on JSON format, All messages, including client requests, server responses are formatted as JSON strings. This is because dealing with JSON is easier/simpler than dealing with XML both in python and actionscript, plus, the protocol will be very straight-forward and human understandable.
+
+	A JSON like string may look like this:
+	-----------------------
+	{"key":"value"}
+	-----------------------
+
+	To convert it to a dictionary(ie, hashtable) in python: 
+	--------------------------------		
+	import json
+	j = '{"key":"value"}'
+	d = json.loads(j)
+	assert d["key"] == "value"
+	--------------------------------
+	
+	To convert it to a Dictionary Object in actionscript:
+	--------------------------------
+	import com.adobe.serialization.json.JSON;
+	var j:String = "{\"key\":\"value\"}";
+	var d:Object = JSON.decode(j);
+	trace(d.key); // should be "value"
+	--------------------------------
+
+	Very simple and self-explained, is it?
+
+
+PROTOCOLS GENERAL
+=================
+	AcChat has a very simple api, that is because its application is simple. 
+	
+	The simplest usage: accepting comments sent from clients (flex player), forward them to anyone in the same channel as the sender and update them to the database. For that purpose, we only need to maitain a channel list, a protocol adding clients to the channel, and a protocol dealing message leaving.
+
+	Now we have: 
+	PROTOCOL_PARTID: to join a channel
+	PROTOCOL_LEAVEMSG: to leave a message 
+
+	Next, we want the server to be spam-free. This can be acheived by limiting the "number of messages the sender can send per minue". But wait, what if a subtitle who want to make subtitles for a video? The spam free mechanism also prevent the good guys from massive ading/editing comments to certain videos. 
+
+	So we need a APIKEY mechanism which assigns one person with a specified apikey, enables them to leave batch messages and record necessary information about their behavior. Protocols to deal with this mechanism:
+
+	PROTOCOL_BATCHMSG:  leave multiple comments in one request
+	PROTOCOL_APIKEY:    verify user's apikey
+	PROTOCOL_BANLIST:   show current banlist
+
+	Move on, now we have a simple but strong chat server, we may interested in questions like: which is the most popular channel (ie, which video is being watched most?), this is a good thinking and very easy to realize, all you need is to return the channel list.
+
+	So the last protocol by now is:
+	PROTOCOL_ONLINE:  retrieve online channels
+
+	That's it, next section is the detailed protocol definition.
+
+
+PROTOCOLS IN DETAIL
+===================
+	a protocol is divided into three parts, DES for description, REQ for request from clients, and ANS for response from server, lower letters are protocol texts and upper letters are VARIABLEs the request need to set.
+
+PROTOCOL_PARTID)
+	DES: join a channel named PARTID
+	REQ: {"protocol":"partid","partid":PARTID}
+	ANS: {"ok":"you are now in channel PARTID"}
+		 {"error":"SOME ERROR MESSAGES"}
+
+PROTOCOL_LEAVEMSG)
+	DES: leave a message in channel PARTID
+         if accepted, return exactly what you have sent, if failed, return error 
+    REQ: {"protocol":"leavemsg","partid":PARTID,"time":TIME,"txt":"TXT","mode":MODE,"date":"TIMESTAMP","color":COLOR,"fontsize":FONTSIZE}
+    ANS: same as REQ
+         {"error":"SOME ERROR MESSAGES"}
+	
+PROTOCOL_BATCHMSG)
+    DES: leave multiple messages to multiple channels
+         special note: requests have max-length limits defined by MAX-LENGTH variable in acc.tac, it defaults to 65536 bytes
+    REQ: {"protocol":"batchmsg",length:LENGTH,data:[{LEAVEMSG POTOCOL},{LEAVEMSG PROTOCOL},...]}
+    ANS: {"ok":"batch message succeed!"
+         {"error":"SOME ERROR MESSAGES"}
+
+PROTOCOL_APIKEY)
+    DES: verify user's apikey
+    REQ: {"protocol":"apikey","apikey":"APIKEY"}
+    ANS: {"ok":"your uid is UID")
+         {"error":"SOME ERROR MESSAGES"}
+
+PROTOCOL_BANLIST)
+    DES: retreive current banlist
+    REQ: {"protocol":"banlist"}
+    ANS: {"ok":"Banlist is empty"}
+         {A JSON STRING DUMPED BY BANLIST DICT, D["IP_AS_INT"]=LINUX_EPOCH_TIME_DUE} 
+
+PROTOCOL_ONLINE)
+    DES: retrieve online list
+    REQ: {"protocol":"online"}
+    ANS: {"online":[PARTID,PARTID,...]}
+
+

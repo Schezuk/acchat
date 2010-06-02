@@ -1,0 +1,28 @@
+			// changes is something like this
+			// ATTENTION: special events need to be listened
+			private function onCmtUpdate(eve:CommentEvent):void{
+				var cd:CommentData = eve.info as CommentData;
+				cm.addComment(cd);
+				this.cdg.dataProvider.addItem(cd);
+				this.cdg.dataProvider.refresh();
+				cdg.scrollToIndex(cdg.dataProvider.length);
+			}
+			private function onSend(eve:Event):void
+			{				
+				if(this.nsm.state == NSComponent.STOP||this.nsm.state == NSComponent.UNLOAD)
+					return
+				if(!csb.enabled)
+					return
+				if(!cti.text||cti.text=="")
+					return
+				var cd:CommentData = new CommentData(mdc.selectedItem.value,Math.round(ps.value /1000),cpk.selectedColor,fsc.selectedItem.value,cti.text,df.format(new Date),true);	 
+				if(this.sfc.filter([cd]))
+					return
+				this.csb.enabled = false;
+
+				// comments are sent like this
+				acc.sendCmt(cd);
+
+				this.csb.enabled = true;
+				this.cti.text = "";
+			}
